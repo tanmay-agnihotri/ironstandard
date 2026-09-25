@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Iron Standard — Powerlifting Self-Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0b;
+    --surface:#141416;
+    --surface-2:#1d1d20;
+    --line: rgba(245,244,240,0.11);
+    --line-strong: rgba(245,244,240,0.22);
+    --ink:#f5f4f0;
+    --ink-dim: rgba(245,244,240,0.64);
+    --ink-faint: rgba(245,244,240,0.4);
+    --brass:#e0222c;
+    --brass-ink:#ffffff;
+    --brass-dim: rgba(224,34,44,0.16);
+    --iron:#e0222c;
+    --iron-dim: rgba(224,34,44,0.16);
+    --good:#f5f4f0;
+    --good-dim: rgba(245,244,240,0.14);
+    --radius: 3px;
+    --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; scroll-padding-top: var(--safe-t); }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background-color:var(--bg);
+    background-image: repeating-linear-gradient(135deg, rgba(224,34,44,0.05) 0px, rgba(224,34,44,0.05) 2px, transparent 2px, transparent 42px);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.5;
+    padding-top:var(--safe-t);
+    padding-bottom:calc(96px + var(--safe-b));
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:var(--font-display);
+    font-weight:700;
+    letter-spacing:0.01em;
+    line-height:1.08;
+    margin:0;
+  }
+  p{margin:0 0 0.7em 0;}
+  a{color:var(--brass);}
+  #app{
+    max-width:640px;
+    margin:0 auto;
+    padding:0 18px 32px;
+  }
+
+  /* ---- Top bar (persistent brand strip) ---- */
+  .topbar{
+    display:flex; align-items:center; gap:10px;
+    padding:16px 0 14px;
+    border-bottom:2px solid var(--line-strong);
+    margin-bottom:18px;
+    cursor:pointer;
+  }
+  .topbar svg{width:24px;height:24px;flex-shrink:0;color:var(--brass);}
+  .topbar .tb-word{
+    font-family:var(--font-display); font-size:14px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--ink-dim);
+  }
+  .topbar .tb-word b{color:var(--brass);font-weight:700;}
+  .topbar .tb-title{
+    margin-left:auto; font-family:var(--font-display); font-size:12px;
+    text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint);
+    padding:4px 10px; border:1px solid var(--line-strong); border-radius:99px;
+  }
+
+  /* ---- Nav / tab bar ---- */
+  #tabbar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--surface);
+    border-top:2px solid var(--line-strong);
+    display:flex;
+    justify-content:center;
+    padding-bottom:var(--safe-b);
+    z-index:50;
+  }
+  .tabbar-inner{
+    max-width:640px;width:100%;
+    display:flex;
+  }
+  .tab-btn{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:9px 1px 8px;
+    background:none; border:none; cursor:pointer;
+    color:var(--ink-faint);
+    font-family:var(--font-body); font-size:10px; font-weight:600;
+    letter-spacing:0.01em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .tab-btn svg{width:20px;height:20px;stroke:var(--ink-faint);fill:none;stroke-width:1.8;}
+  .tab-btn.active{color:var(--brass);}
+  .tab-btn.active svg{stroke:var(--brass);}
+
+  .hero{ padding-bottom: 18px; }
+  .hero h1{ font-size:32px; color:var(--ink); }
+  .hero .lede{ color:var(--ink-dim); font-size:15px; margin-top:10px; max-width:42ch;}
+
+  .plate-divider{
+    display:flex; align-items:center; gap:8px;
+    margin:26px 0 16px;
+  }
+  .plate-divider svg{width:16px;height:16px;flex-shrink:0;}
+  .plate-divider .label{
+    font-family:var(--font-display); font-size:13px; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--ink-dim);
+  }
+  .plate-divider .rule{flex:1;height:2px;background:var(--line);}
+
+  /* ---- Cards ---- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-top:2px solid var(--line-strong);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:12px;
+  }
+  .card h3{font-size:15px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.02em;}
+  .lift-row{ display:flex; gap:10px; margin-bottom:14px; }
+  .lift-pick{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px 8px 10px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--ink-dim);
+  }
+  .lift-pick svg{width:34px;height:34px;stroke:var(--ink-dim);fill:none;stroke-width:2;margin-bottom:6px;}
+  .lift-pick .name{font-family:var(--font-display);font-size:13px;text-transform:uppercase;letter-spacing:0.04em;}
+  .lift-pick.active{border-color:var(--brass);background:var(--brass-dim);color:var(--brass);}
+  .lift-pick.active svg{stroke:var(--brass);}
+
+  /* ---- Form elements ---- */
+  label{display:block;font-size:12.5px;color:var(--ink-dim);margin-bottom:5px;font-weight:600;}
+  .field{margin-bottom:14px;}
+  input[type=text],input[type=number],input[type=date],select,textarea{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--ink);
+    border-radius:var(--radius);
+    padding:10px 11px;
+    font-size:15px;
+    font-family:var(--font-body);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--brass);outline-offset:1px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .radio-group{display:flex;flex-wrap:wrap;gap:8px;}
+  .radio-chip{
+    border:1px solid var(--line);
+    border-radius:99px;
+    padding:7px 13px;
+    font-size:13px;
+    cursor:pointer;
+    color:var(--ink-dim);
+    background:var(--surface-2);
+  }
+  .radio-chip.active{background:var(--brass);color:var(--brass-ink);border-color:var(--brass);font-weight:600;}
+
+  button.btn{
+    width:100%;
+    background:var(--brass);
+    color:var(--brass-ink);
+    border:none;
+    border-radius:var(--radius);
+    padding:13px;
+    font-family:var(--font-display);
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    cursor:pointer;
+    font-weight:700;
+  }
+  button.btn.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line-strong); }
+  button.btn.ghost-small{
+    width:auto; background:transparent; color:var(--brass); border:1px dashed var(--brass);
+    padding:8px 12px; font-size:11.5px;
+  }
+
+  .checklist-item{ border-bottom:1px solid var(--line); padding:14px 0; }
+  .checklist-item:last-child{border-bottom:none;}
+  .checklist-item .q{font-size:14px;margin-bottom:9px;color:var(--ink);}
+  .yn-row{display:flex;gap:8px;}
+  .yn-btn{
+    flex:1; padding:8px 6px; border-radius:var(--radius); border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink-dim); font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .yn-btn.active-yes{background:var(--good-dim);border-color:var(--good);color:var(--good);}
+  .yn-btn.active-no{background:var(--iron-dim);border-color:var(--iron);color:var(--iron);}
+  .yn-btn.active-unsure{background:var(--brass-dim);border-color:var(--brass);color:var(--brass);}
+
+  .verdict-box{ padding:16px;border-radius:var(--radius);margin-bottom:14px; border:1px solid; border-top-width:3px; }
+  .verdict-good{background:var(--good-dim);border-color:var(--good);}
+  .verdict-bad{background:var(--iron-dim);border-color:var(--iron);}
+  .verdict-mid{background:var(--brass-dim);border-color:var(--brass);}
+  .verdict-box .v-title{font-family:var(--font-display);font-size:18px;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:4px;}
+  .verdict-good .v-title{color:var(--good);}
+  .verdict-bad .v-title{color:var(--iron);}
+  .verdict-mid .v-title{color:var(--brass);}
+
+  .tip-list{list-style:none;margin:0;padding:0;}
+  .tip-list li{ display:flex;gap:9px;font-size:13.5px;color:var(--ink-dim);padding:6px 0; }
+  .tip-list li .dot{flex-shrink:0;width:6px;height:6px;border-radius:50%;margin-top:6px;}
+  .tip-list.improve .dot{background:var(--iron);}
+  .tip-list.strength .dot{background:var(--good);}
+
+  video{width:100%;border-radius:var(--radius);background:#000;display:block;}
+  .mark-row{display:flex;gap:8px;margin-top:10px;}
+  .mark-btn{ flex:1;padding:10px 4px;border-radius:var(--radius);border:1px solid var(--line); background:var(--surface-2);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer; }
+  .mark-btn.done{border-color:var(--brass);color:var(--brass);}
+  .timing-readout{ display:flex;justify-content:space-between;margin-top:12px;font-size:13px;color:var(--ink-dim); }
+  .timing-readout b{color:var(--ink);font-family:var(--font-display);font-size:16px;}
+
+  table.plan-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.plan-table th{ text-align:left;font-family:var(--font-display);font-size:11px;text-transform:uppercase; letter-spacing:0.04em;color:var(--ink-faint);padding:6px 4px;border-bottom:1px solid var(--line); }
+  table.plan-table td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--ink-dim);}
+  table.plan-table td.ex-name{color:var(--ink);font-weight:600;}
+  .day-card{margin-bottom:14px;}
+  .day-card .day-head{ display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px; }
+  .day-card .day-head .num{font-family:var(--font-display);font-size:12px;color:var(--brass);}
+  .day-card .day-head .focus{font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:0.02em;}
+
+  .stat-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .stat-box{ flex:1;min-width:78px;background:var(--surface-2);border-radius:var(--radius);border-top:2px solid var(--brass);padding:12px 8px;text-align:center; }
+  .stat-box .n{font-family:var(--font-display);font-size:20px;color:var(--brass);}
+  .stat-box .l{font-size:10px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.03em;margin-top:2px;}
+
+  .note-box{ border-left:3px solid var(--brass);background:var(--brass-dim);padding:12px 14px;border-radius:0 var(--radius) var(--radius) 0; font-size:13.5px;color:var(--ink-dim);margin-bottom:14px; }
+  .disclaimer{ font-size:12px;color:var(--ink-faint);border:1px dashed var(--line-strong);border-radius:var(--radius); padding:11px 12px;margin-top:6px; }
+  .empty-state{ text-align:center;padding:34px 14px;color:var(--ink-faint); }
+  .empty-state svg{width:38px;height:38px;stroke:var(--ink-faint);fill:none;stroke-width:1.5;margin-bottom:10px;}
+
+  .history-item{ display:flex;justify-content:space-between;align-items:center; padding:10px 0;border-bottom:1px solid var(--line);font-size:13px; }
+  .history-item .d{color:var(--ink-faint);font-size:11.5px;}
+  .pill{ font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em; padding:3px 8px;border-radius:99px; }
+  .pill.full{background:var(--good-dim);color:var(--good);}
+  .pill.partial{background:var(--brass-dim);color:var(--brass);}
+  .pill.missed{background:var(--iron-dim);color:var(--iron);}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  canvas{max-width:100%;}
+
+  .exercise-row{ border:1px solid var(--line);border-radius:var(--radius);padding:10px 10px 4px;margin-bottom:10px;background:var(--surface-2); }
+  .exercise-row .ex-title{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--ink);}
+  .exercise-row .ex-target{font-size:11.5px;color:var(--ink-faint);margin-bottom:8px;}
+  .mini-field-row{display:flex;gap:8px;}
+  .mini-field{flex:1;}
+  .mini-field label{font-size:10.5px;margin-bottom:3px;}
+  .mini-field input{padding:7px 8px;font-size:13px;}
+  .remove-ex{color:var(--iron);font-size:11px;background:none;border:none;cursor:pointer;padding:4px 0 8px;font-weight:600;}
+
+  .faq-item{ border-bottom:1px solid var(--line); padding:13px 0; }
+  .faq-item:last-child{border-bottom:none;}
+  .faq-item .fq{font-size:14px;font-weight:700;color:var(--brass);margin-bottom:5px;}
+  .faq-item .fa{font-size:13.5px;color:var(--ink-dim);}
+
+  .seg-tabs{ display:flex; gap:6px; margin-bottom:16px; background:var(--surface-2); padding:4px; border-radius:6px; }
+  .seg-tab{ flex:1; text-align:center; padding:8px 4px; border-radius:4px; font-family:var(--font-display); font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--ink-faint); cursor:pointer; }
+  .seg-tab.active{ background:var(--brass); color:var(--brass-ink); font-weight:700; }
+
+  .day-plan-card{ margin-bottom:12px; }
+  .day-plan-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .day-plan-head .dname{ font-family:var(--font-display); font-size:14px; text-transform:uppercase; letter-spacing:0.02em; }
+  .day-plan-head .dtoday{ font-size:10px; color:var(--brass); border:1px solid var(--brass); border-radius:99px; padding:2px 8px; text-transform:uppercase; letter-spacing:0.03em; }
+  .meal-slot{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .meal-slot:last-child{border-bottom:none;}
+  .meal-slot .m-icon{ font-size:22px; width:32px; text-align:center; flex-shrink:0; }
+  .meal-slot .m-body{ flex:1; min-width:0; }
+  .meal-slot .m-type{ font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.03em; }
+  .meal-slot .m-name{ font-size:13px; color:var(--ink); font-weight:600; }
+  .meal-slot .m-meta{ font-size:11px; color:var(--ink-faint); }
+  .meal-slot button.choose-btn{ width:auto; background:transparent; border:1px dashed var(--line-strong); color:var(--brass); padding:6px 10px; font-size:11px; border-radius:4px; }
+
+  .meal-option-grid{ display:flex; flex-direction:column; gap:8px; margin:10px 0 4px; }
+  .meal-option{ display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:4px; padding:9px 10px; background:var(--surface-2); cursor:pointer; }
+  .meal-option .mo-icon{ font-size:26px; width:32px; text-align:center; flex-shrink:0; }
+  .meal-option .mo-name{ font-size:13px; font-weight:600; color:var(--ink); }
+  .meal-option .mo-meta{ font-size:11px; color:var(--ink-faint); margin-top:2px; }
+  .meal-option .mo-badge{ margin-left:auto; font-size:9.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--brass); border:1px solid var(--brass); border-radius:99px; padding:2px 7px; white-space:nowrap; }
+
+  .cheat-tally{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  .cheat-box{ width:34px; height:34px; border-radius:4px; border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:15px; color:var(--ink-faint); }
+  .cheat-box.used{ background:var(--iron-dim); border-color:var(--iron); color:var(--iron); }
+
+  @media (min-width:640px){ .hero h1{font-size:40px;} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav id="tabbar"><div class="tabbar-inner" id="tabbar-inner"></div></nav>
+
+<script>
+/* ============================= ICONS ============================= */
+const ICONS = {
+  barbell: `<svg viewBox="0 0 100 100"><circle cx="16" cy="50" r="12" fill="currentColor" stroke="none"/><circle cx="16" cy="50" r="5" fill="var(--bg)" stroke="none"/><circle cx="84" cy="50" r="12" fill="currentColor" stroke="none"/><circle cx="84" cy="50" r="5" fill="var(--bg)" stroke="none"/><rect x="26" y="46" width="48" height="8" fill="currentColor" stroke="none"/></svg>`,
+  home: `<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>`,
+  judge: `<svg viewBox="0 0 24 24"><path d="M4 4l4 8-4 0z"/><path d="M16 4l4 8-4 0z"/><path d="M8 8a4 4 0 0 0 8 0"/><path d="M6 4h12"/><path d="M12 4v16"/><path d="M8 20h8"/></svg>`,
+  plan: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="1"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/></svg>`,
+  workout: `<svg viewBox="0 0 24 24"><rect x="1.5" y="9" width="3" height="6" rx="0.5"/><rect x="19.5" y="9" width="3" height="6" rx="0.5"/><rect x="5" y="7" width="3" height="10" rx="0.5"/><rect x="16" y="7" width="3" height="10" rx="0.5"/><path d="M8 12h8"/></svg>`,
+  diet: `<svg viewBox="0 0 24 24"><path d="M6 2v7a2 2 0 0 0 4 0V2"/><path d="M8 9v13"/><path d="M17 2c-2 0-3 3-3 6s1 4 3 4"/><path d="M17 2v19"/></svg>`,
+  checkin: `<svg viewBox="0 0 24 24"><path d="M9 11l2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="1"/></svg>`,
+  progress: `<svg viewBox="0 0 24 24"><path d="M4 19V9M11 19V5M18 19v-7"/></svg>`,
+  plate: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" fill="none" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" fill="none" stroke-width="2"/></svg>`,
+  squat: `<svg viewBox="0 0 100 100"><circle cx="50" cy="26" r="8" fill="none" stroke="currentColor" stroke-width="3"/><path d="M30 34c8 3 12 3 20 3s12 0 20-3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M50 37v16" stroke="currentColor" stroke-width="3"/><path d="M50 53l-13 14M50 53l13 14" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M37 67l-4 15M63 67l4 15" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 34h72" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="34" r="7" fill="currentColor"/><circle cx="86" cy="34" r="7" fill="currentColor"/></svg>`,
+  bench: `<svg viewBox="0 0 100 100"><circle cx="26" cy="58" r="8" fill="none" stroke="currentColor" stroke-width="3"/><path d="M34 58h32" stroke="currentColor" stroke-width="3"/><path d="M50 58l-4 -28M50 58l4 -28" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M46 30h24" stroke="currentColor" stroke-width="3"/><circle cx="46" cy="30" r="7" fill="currentColor"/><circle cx="70" cy="30" r="7" fill="currentColor"/><path d="M66 58l16 4M58 58l4 18" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="18" y="63" width="60" height="6" fill="none" stroke="currentColor" stroke-width="3"/></svg>`,
+  deadlift: `<svg viewBox="0 0 100 100"><circle cx="46" cy="24" r="8" fill="none" stroke="currentColor" stroke-width="3"/><path d="M46 32l6 20" stroke="currentColor" stroke-width="3" fill="none"/><path d="M52 52l-4 30M52 52l16 6" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M52 52l-22 22" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 78h72" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="78" r="10" fill="currentColor"/><circle cx="86" cy="78" r="10" fill="currentColor"/></svg>`
+};
+
+/* ============================= STATE ============================= */
+const LS_PROFILE='iron_profile', LS_PROGRAM='iron_program', LS_CHECKINS='iron_checkins_v2', LS_LIFTCHECKS='iron_liftchecks', LS_TRAINLOGS='iron_trainlogs';
+const LS_MEALPLAN='iron_mealplan', LS_DIETLOG='iron_dietlog', LS_CHEATMEALS='iron_cheatmeals';
+function load(key, fallback){ try{ const v=localStorage.getItem(key); return v? JSON.parse(v): fallback; }catch(e){ return fallback; } }
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){ console.error('save failed', e); } }
+
+let state = {
+  tab: 'home',
+  profile: load(LS_PROFILE, null),
+  program: load(LS_PROGRAM, null),
+  checkins: load(LS_CHECKINS, []),
+  liftchecks: load(LS_LIFTCHECKS, []),
+  trainlogs: load(LS_TRAINLOGS, []),
+  mealPlan: load(LS_MEALPLAN, {}),
+  dietLog: load(LS_DIETLOG, []),
+  cheatMeals: load(LS_CHEATMEALS, {allowedPerMonth:4, used:[]}),
+  judge: { lift:'squat', answers:{}, marks:{}, videoURL:null, result:null },
+  dietUI: { subtab:'targets', picker:null }
+};
+
+/* ============================= TAB BAR ============================= */
+const TABS = [
+  {id:'judge', label:'Judge', icon:'judge'},
+  {id:'plan', label:'Plan', icon:'plan'},
+  {id:'trainlog', label:'Workout', icon:'workout'},
+  {id:'diet', label:'Diet', icon:'diet'},
+  {id:'checkin', label:'Check-in', icon:'checkin'},
+  {id:'progress', label:'Progress', icon:'progress'},
+];
+const TAB_TITLES = {home:'', judge:'Lift Check', plan:'Training Plan', trainlog:'Workout Log', diet:'Diet', checkin:'Daily Check-in', progress:'Progress'};
+
+function renderTabbar(){
+  const el = document.getElementById('tabbar-inner');
+  el.innerHTML = TABS.map(t => `
+    <button class="tab-btn ${state.tab===t.id?'active':''}" data-tab="${t.id}">
+      ${ICONS[t.icon]}
+      <span>${t.label}</span>
+    </button>`).join('');
+  el.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{ state.tab=b.dataset.tab; renderAll(); window.scrollTo(0,0); });
+  });
+}
+
+function topbar(){
+  const title = TAB_TITLES[state.tab] || '';
+  return `
+  <div class="topbar" id="topbar-gohome">
+    ${ICONS.barbell}
+    <div class="tb-word">IRON <b>STANDARD</b></div>
+    ${title? `<div class="tb-title">${title}</div>` : ''}
+  </div>`;
+}
+
+/* ============================= HELPERS ============================= */
+function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+const MOTIVATIONAL_QUOTES = [
+  "Strength is built in the sessions nobody claps for.",
+  "The bar doesn't care about excuses. Show up anyway.",
+  "Every honest rep is a deposit — the total comes due on meet day.",
+  "You don't need to feel ready. You just need to load the bar.",
+  "Progress is a grind, not a highlight reel.",
+  "Discipline is choosing the plan on the days you don't feel like it.",
+  "The lift you're avoiding is usually the one you need most.",
+  "Consistency beats intensity, every single time.",
+  "Chalk up. Brace up. Show up.",
+  "Nobody remembers your worst set. They remember that you kept coming back."
+];
+function pickQuote(){ return MOTIVATIONAL_QUOTES[Math.floor(Math.random()*MOTIVATIONAL_QUOTES.length)]; }
+
+/* ============================= HOME ============================= */
+function renderHome(){
+  return `
+  ${topbar()}
+  <div class="hero">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--brass-dim);border:1px solid var(--brass);color:var(--brass);border-radius:99px;padding:4px 11px;font-family:var(--font-display);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">${ICONS.plate.replace(/currentColor/g,'var(--brass)').replace('viewBox="0 0 24 24"','viewBox="0 0 24 24" style="width:11px;height:11px"')}Raw Powerlifting</div>
+    <h1>Judge your own lift like the platform will.</h1>
+    <p class="lede">A free self-coaching tool for raw powerlifting: review your squat, bench and deadlift against real competition standards, log your training, plan your diet, and track the daily habits that decide whether any of it sticks.</p>
+  </div>
+
+  <div class="lift-row">
+    <div class="lift-pick" style="cursor:default">${ICONS.squat}<div class="name">Squat</div></div>
+    <div class="lift-pick" style="cursor:default">${ICONS.bench}<div class="name">Bench</div></div>
+    <div class="lift-pick" style="cursor:default">${ICONS.deadlift}<div class="name">Deadlift</div></div>
+  </div>
+
+  <div style="border-top:2px solid var(--brass);background:var(--brass-dim);border-radius:0 4px 4px 0;padding:13px 15px;font-size:13.5px;color:var(--ink);font-weight:600;margin-bottom:18px;">${pickQuote()}</div>
+
+  <div class="plate-divider">${ICONS.plate.replace('currentColor','var(--ink-faint)')}<div class="label">What is here</div><div class="rule"></div></div>
+
+  <div class="card"><h3>Lift Check</h3><p style="font-size:13.5px;color:var(--ink-dim)">Watch your own video back and score it against the actual rules judges use.</p></div>
+  <div class="card"><h3>Training Plan</h3><p style="font-size:13.5px;color:var(--ink-dim)">A 5-day, 2-hour split built around squat, bench and deadlift.</p></div>
+  <div class="card"><h3>Workout Log</h3><p style="font-size:13.5px;color:var(--ink-dim)">Record exactly what you lifted today against what the plan called for.</p></div>
+  <div class="card"><h3>Diet</h3><p style="font-size:13.5px;color:var(--ink-dim)">Calorie and protein targets, food sources for your diet type, and answers to common questions.</p></div>
+  <div class="card"><h3>Daily Check-in</h3><p style="font-size:13.5px;color:var(--ink-dim)">Sleep, water, caffeine, energy, stress, alcohol, smoking — the habits that sit underneath your training.</p></div>
+
+  <div class="note-box">Everything you enter stays on this device only — there is no server and no account. Close the tab and it is still here next time you open this page.</div>
+  `;
+}
+
+/* ============================= LIFT CHECK (JUDGE) ============================= */
+const CHECKLISTS = {
+  squat: { title: 'Squat', icon:'squat', items: [
+    {id:'depth', critical:true, q:'At the bottom, was the crease of your hip clearly lower than the top of your knee?', improve:"Depth is the number one reason squats get red-lighted. Work on ankle and hip mobility, and practice pausing an extra beat below parallel so you know you're past it, not guessing."},
+    {id:'control', critical:false, q:'Did you stay in control at the bottom, without bouncing off the hole?', improve:"A bounced squat often gets called for lack of control even if depth is fine. Slow the last few inches of the descent down."},
+    {id:'knees', critical:false, q:'Did your knees track over your feet without caving inward?', improve:'Knee cave usually shows up as the weight gets heavy. Cue "spread the floor" with your feet, and check your squat stance width.'},
+    {id:'unrack', critical:false, q:'Did you walk the bar out and get set up under control before starting?', improve:"A shaky or rushed walkout wastes energy before the rep even starts. Take your time — there is no clock on the setup."},
+    {id:'lockout', critical:true, q:'Did you stand fully upright with hips and knees locked at the top before racking?', improve:'An incomplete lockout at the top is an automatic no-lift. Drive through fully and pause a beat at the top before racking.'}
+  ]},
+  bench: { title:'Bench Press', icon:'bench', items: [
+    {id:'contact', critical:false, q:'Did your head, shoulders and glutes all stay in contact with the bench the whole rep?', improve:'Lifting your hips or head off the bench is a common red light. Set your upper back tight and keep glutes pinned down, even under strain.'},
+    {id:'feet', critical:false, q:'Did both feet stay flat and in place on the floor throughout?', improve:'Feet sliding or lifting costs stability and can be flagged. Plant them hard before you unrack.'},
+    {id:'pause', critical:true, q:'Was there a clear, motionless pause with the bar on your chest before you pressed?', improve:'No visible pause is one of the most common reasons a bench gets no-lifted. Practice a full one-count dead stop on your chest, every rep, even in training.'},
+    {id:'path', critical:false, q:'Did the bar move in a smooth, controlled path without bouncing off your chest?', improve:'A bounced bar path both risks injury and reads as an uncontrolled lift. Lower it slower than feels necessary.'},
+    {id:'lockout', critical:true, q:'Did both elbows lock out evenly at the top, with no press-out to one side?', improve:'Uneven lockout usually means one side is weaker. Add some single-arm dumbbell pressing work and check your grip is even and your bar path is straight.'}
+  ]},
+  deadlift: { title:'Deadlift', icon:'deadlift', items: [
+    {id:'liftoff', critical:false, q:'Did the bar come off the floor smoothly, without double-bouncing or hitching up your thighs?', improve:'Hitching, using your thighs to help finish the pull, is illegal in competition. Build more off-the-floor strength with deficit deadlifts or pause deadlifts.'},
+    {id:'path', critical:false, q:'Did you keep the bar close to your body the whole way up, without it swinging forward?', improve:'A bar drifting away from your shins burns your lower back and can cost you the rep. Think about dragging it up your legs.'},
+    {id:'lockout', critical:true, q:'At the top, were your hips and knees fully extended and shoulders back?', improve:'An unfinished lockout, soft knees or hips still bent, is a no-lift. Squeeze your glutes hard and finish tall at the top of every rep.'},
+    {id:'spine', critical:false, q:'Did your lower back stay reasonably neutral, without severe rounding at the hardest point of the pull?', improve:"Heavy rounding under load is a form breakdown, not just a judging issue — it's where deadlifts hurt people. Brace harder before you pull and consider dropping the weight until the position holds."},
+    {id:'lowering', critical:false, q:'Did you lower the bar under control rather than dropping it before it touched down?', improve:'Dropping the bar early can be a no-lift depending on the federation. Keep tension until the plates touch the floor.'}
+  ]}
+};
+
+function renderJudge(){
+  const lift = state.judge.lift;
+  const cl = CHECKLISTS[lift];
+  const answers = state.judge.answers;
+
+  const liftPicker = `
+    <div class="lift-row">
+      ${Object.keys(CHECKLISTS).map(k=>`
+        <div class="lift-pick ${lift===k?'active':''}" data-lift="${k}">
+          ${ICONS[CHECKLISTS[k].icon]}
+          <div class="name">${CHECKLISTS[k].title}</div>
+        </div>`).join('')}
+    </div>`;
+
+  const videoSection = `
+    <div class="card">
+      <h3>1. Load your video</h3>
+      <p style="font-size:13px;color:var(--ink-dim);margin-bottom:10px">Nothing uploads anywhere — it plays straight from your phone or computer.</p>
+      <input type="file" accept="video/*" id="video-input" style="color:var(--ink-dim);font-size:13px;width:100%">
+      <div id="video-wrap" style="margin-top:12px;${state.judge.videoURL?'':'display:none'}">
+        <video id="lift-video" controls playsinline></video>
+        <div class="mark-row">
+          <button class="mark-btn ${state.judge.marks.start!=null?'done':''}" data-mark="start">Mark Start</button>
+          <button class="mark-btn ${state.judge.marks.turn!=null?'done':''}" data-mark="turn">Mark Bottom / Pause</button>
+          <button class="mark-btn ${state.judge.marks.finish!=null?'done':''}" data-mark="finish">Mark Lockout</button>
+        </div>
+        <div class="timing-readout">
+          <div>Descent/Setup: <b>${timeDiff('start','turn')}</b></div>
+          <div>Drive/Press: <b>${timeDiff('turn','finish')}</b></div>
+          <div>Total: <b>${timeDiff('start','finish')}</b></div>
+        </div>
+      </div>
+    </div>`;
+
+  const checklistSection = `
+    <div class="card">
+      <h3>2. Score it against the rulebook</h3>
+      <p style="font-size:13px;color:var(--ink-dim);margin-bottom:4px">Watch the video back and answer honestly — this mirrors what a real judge looks for.</p>
+      ${cl.items.map(it=>`
+        <div class="checklist-item">
+          <div class="q">${it.q}${it.critical?' <span style="color:var(--brass);font-size:11px">(often decides good/no-lift)</span>':''}</div>
+          <div class="yn-row">
+            <button class="yn-btn ${answers[it.id]==='yes'?'active-yes':''}" data-q="${it.id}" data-a="yes">Yes</button>
+            <button class="yn-btn ${answers[it.id]==='no'?'active-no':''}" data-q="${it.id}" data-a="no">No</button>
+            <button class="yn-btn ${answers[it.id]==='unsure'?'active-unsure':''}" data-q="${it.id}" data-a="unsure">Not sure</button>
+          </div>
+        </div>`).join('')}
+      <div style="margin-top:14px"><button class="btn" id="score-btn">Score this lift</button></div>
+    </div>`;
+
+  const resultSection = state.judge.result ? renderJudgeResult(state.judge.result) : '';
+
+  return `
+  ${topbar()}
+  <p style="color:var(--ink-dim);font-size:13.5px;margin-bottom:16px">Self-judge a rep using real raw powerlifting standards.</p>
+  ${liftPicker}
+  ${videoSection}
+  ${checklistSection}
+  ${resultSection}
+  <div class="disclaimer">This is a self-assessment guide built on real competition rules, not automatic AI video grading — camera-only auto-judging is not reliable enough yet to trust for meet prep. Use it like film review with a coach: watch closely, answer honestly, and get a second pair of eyes when you can.</div>
+  `;
+}
+
+function timeDiff(aKey,bKey){
+  const a = state.judge.marks[aKey], b = state.judge.marks[bKey];
+  if(a==null || b==null) return '—';
+  return Math.abs(b-a).toFixed(1)+'s';
+}
+
+function renderJudgeResult(result){
+  const boxClass = result.verdict==='good'?'verdict-good':(result.verdict==='bad'?'verdict-bad':'verdict-mid');
+  const titleText = result.verdict==='good' ? 'Likely Good Lift' : (result.verdict==='bad' ? 'Likely No Lift' : 'Borderline — Get A Second Opinion');
+  const lightColor = result.verdict==='bad' ? 'var(--iron)' : 'var(--good)';
+  const litCount = result.verdict==='good' ? 3 : (result.verdict==='bad' ? 0 : 2);
+  const lights = [0,1,2].map(i=>`<div style="width:15px;height:15px;border-radius:50%;background:${i<litCount?lightColor:'var(--surface-2)'};border:1px solid ${i<litCount?lightColor:'var(--line-strong)'};${i<litCount?'box-shadow:0 0 8px '+lightColor+';':''}"></div>`).join('');
+  return `
+  <div class="verdict-box ${boxClass}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;gap:7px;">${lights}</div>
+      <div style="font-family:var(--font-display);font-size:22px;color:${lightColor};">${result.score}<span style="font-size:13px;color:var(--ink-faint)">/10</span></div>
+    </div>
+    <div class="v-title">${titleText}</div>
+    <div style="font-size:13px;color:var(--ink-dim)">${result.summary}</div>
+  </div>
+  ${result.strengths.length? `<div class="card"><h3>What looked solid</h3><ul class="tip-list strength">${result.strengths.map(s=>`<li><span class="dot"></span>${s}</li>`).join('')}</ul></div>`:''}
+  ${result.improve.length? `<div class="card"><h3>What to work on</h3><ul class="tip-list improve">${result.improve.map(s=>`<li><span class="dot"></span>${s}</li>`).join('')}</ul></div>`:''}
+  <div class="note-box">${pickQuote()}</div>
+  <button class="btn secondary" id="save-liftcheck-btn" style="margin-bottom:14px">Save this to my history</button>
+  `;
+}
+
+function scoreLift(){
+  const lift = state.judge.lift;
+  const cl = CHECKLISTS[lift];
+  const answers = state.judge.answers;
+  let criticalNo=false, anyNo=false, anyUnsure=false;
+  const strengths=[], improve=[];
+  let score = 10;
+  cl.items.forEach(it=>{
+    const a = answers[it.id];
+    if(a==='no'){
+      anyNo=true;
+      if(it.critical){ criticalNo=true; score -= 3; } else { score -= 1; }
+      improve.push(it.improve);
+    }
+    else if(a==='unsure'){ anyUnsure=true; score -= it.critical ? 1 : 0.5; }
+    else if(a==='yes'){ strengths.push(it.q.replace(/\?$/,'')); }
+  });
+  score = Math.max(0, Math.round(score*10)/10);
+
+  let verdict;
+  if(criticalNo) verdict='bad';
+  else if(!anyNo && !anyUnsure) verdict='good';
+  else verdict='mid';
+
+  let summary;
+  if(verdict==='good') summary = 'Every checkpoint that judges actually look for came back clean. Keep filming — consistency is what separates gym lifts from meet lifts.';
+  else if(verdict==='bad') summary = "At least one of the items that usually decides a call (depth, pause, or lockout) came back no. That is the first thing to fix before you chase more weight.";
+  else summary = 'Nothing outright failed, but a few things were shaky or unclear from the video. Treat this one as a maybe, not a green light.';
+
+  return {verdict, summary, strengths, improve, score};
+}
+
+/* ============================= SHARED PROFILE INTAKE ============================= */
+const DIET_LABELS = {veg:'Vegetarian', egg:'Eggetarian', nonveg:'Non-vegetarian', vegan:'Vegan'};
+let profileDraft = {};
+
+function renderProfileIntake(context){
+  const p = state.profile || profileDraft || {};
+  return `
+  <div class="card">
+    <h3>Set up your profile</h3>
+    <p style="font-size:13px;color:var(--ink-dim);margin-bottom:12px">Used for both your ${context==='diet'?'diet targets and your ':''}training plan${context==='plan'?' and your diet targets':''} — fill it in once.</p>
+    <div class="field-row">
+      <div class="field"><label>Current weight (kg)</label><input type="number" id="f-cw" value="${p.currentWeight||''}"></div>
+      <div class="field"><label>Goal weight (kg)</label><input type="number" id="f-gw" value="${p.goalWeight||''}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Height (cm)</label><input type="number" id="f-h" value="${p.height||''}"></div>
+      <div class="field"><label>Age</label><input type="number" id="f-age" value="${p.age||''}"></div>
+    </div>
+    <div class="field">
+      <label>Sex (for calorie estimate)</label>
+      <div class="radio-group" id="f-sex">${['Male','Female'].map(s=>`<div class="radio-chip ${p.sex===s?'active':''}" data-val="${s}">${s}</div>`).join('')}</div>
+    </div>
+    <div class="field">
+      <label>Diet</label>
+      <div class="radio-group" id="f-diet">${Object.entries(DIET_LABELS).map(([k,v])=>`<div class="radio-chip ${p.diet===k?'active':''}" data-val="${k}">${v}</div>`).join('')}</div>
+    </div>
+    <div class="field">
+      <label>Experience</label>
+      <div class="radio-group" id="f-exp">${['New to lifting','Some gym experience'].map(s=>`<div class="radio-chip ${p.experience===s?'active':''}" data-val="${s}">${s}</div>`).join('')}</div>
+    </div>
+    <button class="btn" id="build-plan-btn">Save profile</button>
+  </div>`;
+}
+
+function computeDiet(p){
+  const w = parseFloat(p.currentWeight), h = parseFloat(p.height), age = parseFloat(p.age);
+  let bmr;
+  if(p.sex==='Male') bmr = 10*w + 6.25*h - 5*age + 5;
+  else bmr = 10*w + 6.25*h - 5*age - 161;
+  const tdee = bmr * 1.55;
+  const goalDiff = parseFloat(p.goalWeight) - w;
+  let calories, goalLabel;
+  if(goalDiff > 1){ calories = tdee + 300; goalLabel='Lean gain'; }
+  else if(goalDiff < -1){ calories = tdee - 400; goalLabel='Fat loss'; }
+  else { calories = tdee; goalLabel='Maintain'; }
+  const protein = Math.round(w * 1.8);
+  const fatCals = calories * 0.25;
+  const fat = Math.round(fatCals/9);
+  const proteinCals = protein*4;
+  const carbs = Math.round((calories - fatCals - proteinCals)/4);
+  return {calories:Math.round(calories), protein, fat, carbs, goalLabel};
+}
+
+/* ============================= TRAINING PLAN ============================= */
+const PROGRAM_TEMPLATE = [
+  {focus:'Squat Day', exercises:[
+    {name:'Back Squat', sets:'5x5', note:'RPE 7 to 8, leave 2 reps in the tank'},
+    {name:'Romanian Deadlift', sets:'3x8', note:'Slow eccentric'},
+    {name:'Plank', sets:'3x45s', note:'Brace hard'}
+  ]},
+  {focus:'Bench Day', exercises:[
+    {name:'Bench Press', sets:'5x5', note:'RPE 7 to 8, pause every rep'},
+    {name:'Barbell Row', sets:'4x8', note:'Chest to the floor between reps'},
+    {name:'Triceps Pushdown', sets:'3x12', note:'Controlled tempo'}
+  ]},
+  {focus:'Deadlift Day', exercises:[
+    {name:'Deadlift', sets:'1x5 top set + 3x5 backoff', note:'Backoff around 85% of top set'},
+    {name:'Leg Press or Front Squat', sets:'3x8', note:'Moderate effort'},
+    {name:'Back Extension', sets:'3x12', note:'Squeeze glutes at top'}
+  ]},
+  {focus:'Technique & Volume Day', exercises:[
+    {name:'Pause Squat', sets:'3x5', note:'2-count pause in the hole'},
+    {name:'Close-Grip Bench', sets:'3x8', note:'Elbows tucked'},
+    {name:'Lat Pulldown', sets:'3x10', note:''},
+    {name:'Weighted Core', sets:'3x15', note:''}
+  ]},
+  {focus:'Weak Point Day', exercises:[
+    {name:'Deficit Deadlift or Paused Bench', sets:'3x5', note:'Pick whichever lift feels weaker this week'},
+    {name:'Overhead Press', sets:'3x8', note:''},
+    {name:'Walking Lunge', sets:'3x10/leg', note:''},
+    {name:'Farmer Carry', sets:'3x30m', note:'Heavy as grip allows'}
+  ]}
+];
+
+function renderPlan(){
+  if(!state.profile) return topbar() + renderProfileIntake('plan');
+  const note = weeklyCoachingNote();
+  return `
+  ${topbar()}
+  <p style="color:var(--ink-dim);font-size:13.5px;margin-bottom:14px">${state.profile.currentWeight}kg working toward ${state.profile.goalWeight}kg — five sessions a week, about two hours each.</p>
+  ${note ? `<div class="note-box">${note}</div>` : ''}
+  ${(state.program||PROGRAM_TEMPLATE).map((d,i)=>`
+    <div class="card day-card">
+      <div class="day-head"><div class="num">DAY ${i+1}</div><div class="focus">${d.focus}</div></div>
+      <table class="plan-table">
+        <tr><th>Exercise</th><th>Sets</th><th>Note</th></tr>
+        ${d.exercises.map(e=>`<tr><td class="ex-name">${e.name}</td><td>${e.sets}</td><td>${e.note||''}</td></tr>`).join('')}
+      </table>
+    </div>`).join('')}
+  <div class="disclaimer">Sets and reps use RPE (effort level) instead of fixed kg because starting loads depend on your history — pick a weight each set where you could do one or two more reps if you had to. Warm up with the bar and build up in the first fifteen minutes of each session.</div>
+  <button class="btn secondary" id="edit-plan-btn" style="margin-top:14px">Edit my profile</button>
+  `;
+}
+
+function weeklyCoachingNote(){
+  const recent = state.trainlogs.slice(-7);
+  if(recent.length < 3) return null;
+  const full = recent.filter(c=>c.completion==='full').length;
+  const rate = full/recent.length;
+  if(rate < 0.6){
+    return "Adjusted for you: your last week's completion rate was under 60%, so this week's sets are trimmed slightly in your head — better to finish four solid sets than miss five planned ones. Rebuild volume once your workout log improves.";
+  } else if(rate > 0.9){
+    return "You are completing sessions well. Try adding a small amount of weight or one extra rep per set this week on your main lifts.";
+  }
+  return null;
+}
+
+/* ============================= WORKOUT LOG (TRAINING) ============================= */
+let trainDraft = null;
+function newTrainDraft(){
+  return { date: todayISO(), dayRef: null, completion: null, exercises: [], notes: '' };
+}
+function ensureTrainDraft(){
+  if(!trainDraft) trainDraft = newTrainDraft();
+  return trainDraft;
+}
+
+function renderTrainLog(){
+  const draft = ensureTrainDraft();
+  const program = state.program || PROGRAM_TEMPLATE;
+  const dayOptions = program.map((d,i)=>`<div class="radio-chip ${draft.dayRef===String(i)?'active':''}" data-val="${i}">Day ${i+1}: ${d.focus.replace(' Day','')}</div>`).join('');
+  const customChip = `<div class="radio-chip ${draft.dayRef==='custom'?'active':''}" data-val="custom">Off-plan</div>`;
+
+  let plannedExercises = '';
+  if(draft.dayRef!=null && draft.dayRef!=='custom'){
+    const day = program[parseInt(draft.dayRef)];
+    plannedExercises = day.exercises.map((e,i)=>{
+      const logged = draft.exercises.find(x=>x.name===e.name);
+      return `
+      <div class="exercise-row" data-exname="${e.name}">
+        <div class="ex-title">${e.name}</div>
+        <div class="ex-target">Planned: ${e.sets}${e.note? ' — '+e.note : ''}</div>
+        <div class="mini-field-row">
+          <div class="mini-field"><label>Weight (kg)</label><input type="number" class="ex-weight" value="${logged?logged.weight||'':''}"></div>
+          <div class="mini-field"><label>Sets done</label><input type="number" class="ex-sets" value="${logged?logged.sets||'':''}"></div>
+          <div class="mini-field"><label>Reps done</label><input type="number" class="ex-reps" value="${logged?logged.reps||'':''}"></div>
+          <div class="mini-field"><label>RPE</label><input type="number" class="ex-rpe" min="1" max="10" value="${logged?logged.rpe||'':''}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const extraExercises = draft.exercises.filter(e=>e.custom).map((e,i)=>`
+    <div class="exercise-row" data-extra-idx="${i}">
+      <div class="ex-title">${e.name || 'Extra exercise'}</div>
+      <div class="mini-field-row">
+        <div class="mini-field"><label>Weight (kg)</label><input type="number" class="extra-weight" value="${e.weight||''}"></div>
+        <div class="mini-field"><label>Sets</label><input type="number" class="extra-sets" value="${e.sets||''}"></div>
+        <div class="mini-field"><label>Reps</label><input type="number" class="extra-reps" value="${e.reps||''}"></div>
+        <div class="mini-field"><label>RPE</label><input type="number" class="extra-rpe" value="${e.rpe||''}"></div>
+      </div>
+      <button class="remove-ex" data-remove-extra="${i}">Remove</button>
+    </div>`).join('');
+
+  return `
+  ${topbar()}
+  <p style="color:var(--ink-dim);font-size:13.5px;margin-bottom:16px">Log exactly what you did today — this is what your plan and progress are built from, not the check-in.</p>
+  <div class="card">
+    <div class="field"><label>Date</label><input type="date" id="tl-date" value="${draft.date}"></div>
+    <div class="field">
+      <label>Which session was this?</label>
+      <div class="radio-group" id="tl-day">${dayOptions}${customChip}</div>
+    </div>
+    ${draft.dayRef==='custom' ? `
+    <div class="field">
+      <label>What did you train? (name, sets x reps, weight — one line each)</label>
+      <textarea id="tl-custom-text" rows="3" placeholder="Squat 5x5 at 80kg">${draft.customText||''}</textarea>
+    </div>` : ''}
+    ${plannedExercises}
+    ${draft.dayRef!=null ? `
+      <div id="extra-exercises">${extraExercises}</div>
+      <button class="btn ghost-small" id="add-extra-btn" type="button">+ Add extra exercise</button>
+    ` : ''}
+    <div class="field" style="margin-top:14px">
+      <label>Overall, how did the session go?</label>
+      <div class="radio-group" id="tl-completion">
+        <div class="radio-chip ${draft.completion==='full'?'active':''}" data-val="full">Full — as planned</div>
+        <div class="radio-chip ${draft.completion==='partial'?'active':''}" data-val="partial">Partial</div>
+        <div class="radio-chip ${draft.completion==='missed'?'active':''}" data-val="missed">Missed / skipped</div>
+      </div>
+    </div>
+    <div class="field"><label>Notes (optional)</label><textarea id="tl-notes" rows="2">${draft.notes||''}</textarea></div>
+    <button class="btn" id="save-trainlog-btn">Save today's workout</button>
+  </div>
+
+  <div class="plate-divider">${ICONS.plate.replace('currentColor','var(--ink-faint)')}<div class="label">Recent sessions</div><div class="rule"></div></div>
+  ${state.trainlogs.length===0 ? `<div class="empty-state">${ICONS.workout.replace(/currentColor/g,'var(--ink-faint)')}<div>No sessions logged yet.</div></div>` :
+    state.trainlogs.slice().reverse().slice(0,14).map(t=>`
+      <div class="history-item">
+        <div><div class="d">${fmtDate(t.date)}</div>${t.dayLabel}</div>
+        <span class="pill ${t.completion}">${t.completion}</span>
+      </div>`).join('')}
+  `;
+}
+
+/* ============================= DIET ============================= */
+const FOOD_SOURCES = {
+  veg: ['Paneer','Dal / lentils (moong, chana, toor)','Soy chunks (nutrela)','Curd / yogurt','Milk','Rajma & chickpeas','Peanut butter','Nuts & seeds'],
+  egg: ['Eggs (whole)','Paneer','Dal / lentils','Curd / yogurt','Milk','Soy chunks','Nuts & seeds'],
+  nonveg: ['Chicken breast & thigh','Eggs','Fish','Curd / yogurt','Milk','Whey if available','Dal on rest days'],
+  vegan: ['Tofu','Soy chunks (nutrela)','Lentils & dals','Chickpeas & rajma','Peanut butter','Soy milk','Nuts & seeds','Tempeh if available']
+};
+const DIET_FAQ = [
+  {q:'How much protein do I actually need?', a:'Roughly 1.6 to 2g per kg of bodyweight per day is the well-supported range for strength athletes. Your target above already sits in that range.'},
+  {q:"I'm vegetarian, can I still hit that protein number?", a:'Yes, it just takes more planning. Paneer, dal, curd, milk and soy chunks are all dense protein sources — spread them across 4 to 5 meals rather than trying to hit it in one or two.'},
+  {q:'Should I eat before or after training?', a:'A small carb and protein meal 1 to 2 hours before, and a protein-containing meal within a couple of hours after, covers most of the benefit. Do not train on a completely empty stomach for heavy sessions.'},
+  {q:'How much water should I drink on training days?', a:'A common starting point is 35 to 40ml per kg of bodyweight, more in hot weather or long sessions — your check-in water log will show you if you are consistently short of that.'},
+  {q:'Do I need supplements to progress as a beginner?', a:'No. Whole food covering your calorie and protein target does the job. Creatine monohydrate is the one supplement with strong evidence for strength gains, if you choose to use one.'},
+  {q:'I want to lose fat but not lose strength, what changes?', a:'Keep protein high (the target above already reflects this), drop calories moderately rather than drastically, and keep training weights roughly the same even as the scale moves down slowly.'}
+];
+
+// suitableFor: which profile diet types can eat this — vegan meals suit everyone, veg suits veg/egg/nonveg, egg suits egg/nonveg, nonveg suits nonveg only.
+// band: roughly how calorie-dense the meal is, used to badge it for a gain vs loss goal.
+const MEAL_LIBRARY = {
+  breakfast: [
+    {id:'b1', name:'Oats in soy milk, peanut butter & banana', icon:'🥣', protein:18, kcal:420, band:'hearty', suitableFor:['vegan','veg','egg','nonveg']},
+    {id:'b2', name:'Vegetable poha with peanuts & milk', icon:'🍚', protein:12, kcal:340, band:'moderate', suitableFor:['veg','egg','nonveg']},
+    {id:'b3', name:'Moong dal chilla (2) with curd', icon:'🥞', protein:20, kcal:360, band:'moderate', suitableFor:['veg','egg','nonveg']},
+    {id:'b4', name:'Egg bhurji (3 eggs) with 2 wheat toast', icon:'🍳', protein:24, kcal:410, band:'hearty', suitableFor:['egg','nonveg']},
+    {id:'b5', name:'Chicken sausage with paratha', icon:'🌯', protein:26, kcal:480, band:'hearty', suitableFor:['nonveg']},
+    {id:'b6', name:'Sprouts & fruit chaat, light', icon:'🌾', protein:10, kcal:230, band:'light', suitableFor:['vegan','veg','egg','nonveg']}
+  ],
+  lunch: [
+    {id:'l1', name:'Rajma, rice, salad & curd', icon:'🍛', protein:22, kcal:560, band:'moderate', suitableFor:['veg','egg','nonveg']},
+    {id:'l2', name:'Chana masala, brown rice & cucumber salad', icon:'🥗', protein:19, kcal:500, band:'moderate', suitableFor:['vegan','veg','egg','nonveg']},
+    {id:'l3', name:'Dal, 3 roti, mixed veg sabzi', icon:'🫓', protein:20, kcal:540, band:'moderate', suitableFor:['veg','egg','nonveg']},
+    {id:'l4', name:'Grilled chicken breast, rice & sauteed veg', icon:'🍗', protein:38, kcal:590, band:'hearty', suitableFor:['nonveg']},
+    {id:'l5', name:'Fish curry, rice & steamed greens', icon:'🐟', protein:32, kcal:550, band:'hearty', suitableFor:['nonveg']},
+    {id:'l6', name:'Light dal & 2 roti, no rice', icon:'🥣', protein:14, kcal:380, band:'light', suitableFor:['vegan','veg','egg','nonveg']}
+  ],
+  dinner: [
+    {id:'d1', name:'Paneer bhurji, 2 roti & salad', icon:'🧀', protein:24, kcal:480, band:'moderate', suitableFor:['veg','egg','nonveg']},
+    {id:'d2', name:'Soy chunk curry, rice & salad', icon:'🌱', protein:22, kcal:470, band:'moderate', suitableFor:['vegan','veg','egg','nonveg']},
+    {id:'d3', name:'Egg curry (3 eggs) & roti', icon:'🍳', protein:22, kcal:440, band:'moderate', suitableFor:['egg','nonveg']},
+    {id:'d4', name:'Grilled fish or chicken, quinoa & veg', icon:'🍗', protein:36, kcal:560, band:'hearty', suitableFor:['nonveg']},
+    {id:'d5', name:'Moong dal khichdi with curd, light', icon:'🍲', protein:16, kcal:350, band:'light', suitableFor:['veg','egg','nonveg']},
+    {id:'d6', name:'Tofu stir-fry with vegetables, light', icon:'🥢', protein:18, kcal:340, band:'light', suitableFor:['vegan','veg','egg','nonveg']}
+  ],
+  snack: [
+    {id:'s1', name:'Roasted chana, 1 cup', icon:'🌰', protein:12, kcal:210, band:'light', suitableFor:['vegan','veg','egg','nonveg']},
+    {id:'s2', name:'Curd or Greek-style yogurt with fruit', icon:'🍶', protein:14, kcal:190, band:'light', suitableFor:['veg','egg','nonveg']},
+    {id:'s3', name:'Boiled eggs (2)', icon:'🥚', protein:13, kcal:155, band:'light', suitableFor:['egg','nonveg']},
+    {id:'s4', name:'Peanut butter on wheat toast', icon:'🥜', protein:11, kcal:260, band:'moderate', suitableFor:['vegan','veg','egg','nonveg']},
+    {id:'s5', name:'Sprouts chaat', icon:'🌾', protein:9, kcal:150, band:'light', suitableFor:['vegan','veg','egg','nonveg']},
+    {id:'s6', name:'Grilled chicken tikka, small portion', icon:'🍢', protein:20, kcal:220, band:'moderate', suitableFor:['nonveg']}
+  ]
+};
+const MEAL_TYPES = [
+  {id:'breakfast', label:'Breakfast'},
+  {id:'lunch', label:'Lunch'},
+  {id:'dinner', label:'Dinner'},
+  {id:'snack', label:'Snack'}
+];
+const WEEK_DAYS = [
+  {id:'mon', label:'Monday'}, {id:'tue', label:'Tuesday'}, {id:'wed', label:'Wednesday'},
+  {id:'thu', label:'Thursday'}, {id:'fri', label:'Friday'}, {id:'sat', label:'Saturday'}, {id:'sun', label:'Sunday'}
+];
+function todayDayKey(){ return WEEK_DAYS[(new Date().getDay()+6)%7].id; } // getDay: 0=Sun -> map to our mon-first list
+function getMealsFor(mealType, dietType){ return MEAL_LIBRARY[mealType].filter(m=>m.suitableFor.includes(dietType)); }
+function findMeal(mealType, id){ return MEAL_LIBRARY[mealType].find(m=>m.id===id); }
+
+function renderDiet(){
+  if(!state.profile) return topbar() + renderProfileIntake('diet');
+  const p = state.profile;
+  const diet = computeDiet(p);
+  const tabs = [
+    {id:'targets', label:'Targets'},
+    {id:'weekplan', label:'Weekly Plan'},
+    {id:'cheat', label:'Cheat Meals'}
+  ];
+  const segRow = `<div class="seg-tabs">${tabs.map(t=>`<div class="seg-tab ${state.dietUI.subtab===t.id?'active':''}" data-dietsub="${t.id}">${t.label}</div>`).join('')}</div>`;
+
+  let body = '';
+  if(state.dietUI.subtab==='targets') body = renderDietTargets(p, diet);
+  else if(state.dietUI.subtab==='weekplan') body = renderMealPlanner(p, diet);
+  else if(state.dietUI.subtab==='cheat') body = renderCheatMeals();
+
+  return `${topbar()}${segRow}${body}`;
+}
+
+function renderDietTargets(p, diet){
+  return `
+  <p style="color:var(--ink-dim);font-size:13.5px;margin-bottom:14px">${diet.goalLabel} target for ${DIET_LABELS[p.diet]}.</p>
+  <div class="stat-row">
+    <div class="stat-box"><div class="n">${diet.calories}</div><div class="l">kcal / day</div></div>
+    <div class="stat-box"><div class="n">${diet.protein}g</div><div class="l">Protein</div></div>
+    <div class="stat-box"><div class="n">${diet.carbs}g</div><div class="l">Carbs</div></div>
+    <div class="stat-box"><div class="n">${diet.fat}g</div><div class="l">Fat</div></div>
+  </div>
+  <div class="card">
+    <h3>${DIET_LABELS[p.diet]} protein sources</h3>
+    <p style="font-size:13px;color:var(--ink-dim);margin-bottom:8px">Build meals around these to hit your protein number without much fuss:</p>
+    <div class="grid-2">${FOOD_SOURCES[p.diet].map(f=>`<div style="font-size:12.5px;color:var(--ink-dim);padding:5px 0;border-bottom:1px solid var(--line)">${f}</div>`).join('')}</div>
+  </div>
+
+  <div class="plate-divider">${ICONS.plate.replace('currentColor','var(--ink-faint)')}<div class="label">Common questions</div><div class="rule"></div></div>
+  <div class="card">
+    ${DIET_FAQ.map(f=>`<div class="faq-item"><div class="fq">${f.q}</div><div class="fa">${f.a}</div></div>`).join('')}
+  </div>
+  <div class="disclaimer">General sports-nutrition guidance, not personalised medical or dietetic advice. If you have a health condition affecting diet, check with a doctor or registered dietitian.</div>
+  <button class="btn secondary" id="edit-plan-btn" style="margin-top:14px">Edit my profile</button>
+  `;
+}
+
+function dietConsistencyStat(){
+  const monthKey = todayISO().slice(0,7);
+  const dayOfMonth = new Date().getDate();
+  const followed = state.dietLog.filter(d=>d.date.startsWith(monthKey) && d.followed==='full').length;
+  return {followed, dayOfMonth};
+}
+
+function renderMealPlanner(p, diet){
+  const todayKey = todayDayKey();
+  const stat = dietConsistencyStat();
+  const goalHint = diet.goalLabel==='Lean gain' ? 'hearty' : (diet.goalLabel==='Fat loss' ? 'light' : null);
+
+  const dayCards = WEEK_DAYS.map(day=>{
+    const plan = state.mealPlan[day.id] || {};
+    const isToday = day.id===todayKey;
+    const slots = MEAL_TYPES.map(mt=>{
+      const pickerActive = state.dietUI.picker && state.dietUI.picker.day===day.id && state.dietUI.picker.mealType===mt.id;
+      const chosen = plan[mt.id] ? findMeal(mt.id, plan[mt.id]) : null;
+      let slotHtml;
+      if(chosen){
+        slotHtml = `
+        <div class="meal-slot">
+          <div class="m-icon">${chosen.icon}</div>
+          <div class="m-body">
+            <div class="m-type">${mt.label}</div>
+            <div class="m-name">${chosen.name}</div>
+            <div class="m-meta">${chosen.protein}g protein · ${chosen.kcal} kcal</div>
+          </div>
+          <button class="choose-btn" data-open-picker="${day.id}|${mt.id}">Change</button>
+        </div>`;
+      } else {
+        slotHtml = `
+        <div class="meal-slot">
+          <div class="m-icon" style="opacity:0.3">🍽️</div>
+          <div class="m-body"><div class="m-type">${mt.label}</div><div class="m-name" style="color:var(--ink-faint);font-weight:400">Not chosen yet</div></div>
+          <button class="choose-btn" data-open-picker="${day.id}|${mt.id}">Choose</button>
+        </div>`;
+      }
+      let pickerHtml = '';
+      if(pickerActive){
+        const options = getMealsFor(mt.id, p.diet);
+        pickerHtml = `
+        <div class="meal-option-grid">
+          ${options.map(o=>`
+            <div class="meal-option" data-pick-meal="${day.id}|${mt.id}|${o.id}">
+              <div class="mo-icon">${o.icon}</div>
+              <div>
+                <div class="mo-name">${o.name}</div>
+                <div class="mo-meta">${o.protein}g protein · ${o.kcal} kcal</div>
+              </div>
+              ${goalHint && o.band===goalHint ? `<div class="mo-badge">${goalHint==='hearty'?'Good for gaining':'Good for cutting'}</div>` : ''}
+            </div>`).join('')}
+          <button class="btn secondary" data-close-picker="1" style="margin-top:2px">Cancel</button>
+        </div>`;
+      }
+      return slotHtml + pickerHtml;
+    }).join('');
+
+    const dayFollow = state.dietLog.find(d=>d.date===dateForDay(day.id));
+    return `
+    <div class="card day-plan-card">
+      <div class="day-plan-head">
+        <div class="dname">${day.label}</div>
+        ${isToday ? '<div class="dtoday">Today</div>' : ''}
+      </div>
+      ${slots}
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);">
+        <label style="margin-bottom:7px;">Did you actually eat this on ${day.label.slice(0,3)}?</label>
+        <div class="radio-group">
+          <div class="radio-chip ${dayFollow&&dayFollow.followed==='full'?'active':''}" data-dietlog="${day.id}|full">Yes, followed it</div>
+          <div class="radio-chip ${dayFollow&&dayFollow.followed==='partial'?'active':''}" data-dietlog="${day.id}|partial">Partially</div>
+          <div class="radio-chip ${dayFollow&&dayFollow.followed==='none'?'active':''}" data-dietlog="${day.id}|none">No, off plan</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="stat-row">
+    <div class="stat-box"><div class="n">${stat.followed}</div><div class="l">Days on plan (${todayISO().slice(0,7)})</div></div>
+    <div class="stat-box"><div class="n">${stat.dayOfMonth}</div><div class="l">Days so far this month</div></div>
+  </div>
+  <p style="color:var(--ink-dim);font-size:13px;margin-bottom:14px">Pick a meal for each slot, each day — it saves as you go, and carries over week to week until you change it.</p>
+  ${dayCards}
+  `;
+}
+
+function dateForDay(dayId){
+  // Returns an ISO date for the current week's occurrence of dayId (Mon-Sun), for the diet log lookup/save.
+  const now = new Date();
+  const currentIdx = (now.getDay()+6)%7; // 0=Mon..6=Sun
+  const targetIdx = WEEK_DAYS.findIndex(d=>d.id===dayId);
+  const diff = targetIdx - currentIdx;
+  const target = new Date(now);
+  target.setDate(now.getDate()+diff);
+  return target.toISOString().slice(0,10);
+}
+
+function renderCheatMeals(){
+  const monthKey = todayISO().slice(0,7);
+  const usedThisMonth = state.cheatMeals.used.filter(d=>d.startsWith(monthKey));
+  const remaining = Math.max(0, state.cheatMeals.allowedPerMonth - usedThisMonth.length);
+  const boxes = Array.from({length: state.cheatMeals.allowedPerMonth}).map((_,i)=>{
+    const used = i < usedThisMonth.length;
+    return `<div class="cheat-box ${used?'used':''}">${used?'✕':''}</div>`;
+  }).join('');
+
+  return `
+  <div class="card">
+    <h3>This month's cheat meals</h3>
+    <div class="stat-row" style="margin-top:10px">
+      <div class="stat-box"><div class="n">${remaining}</div><div class="l">Remaining</div></div>
+      <div class="stat-box"><div class="n">${usedThisMonth.length}</div><div class="l">Used</div></div>
+      <div class="stat-box"><div class="n">${state.cheatMeals.allowedPerMonth}</div><div class="l">Allowed</div></div>
+    </div>
+    <div class="cheat-tally">${boxes}</div>
+    <button class="btn" id="log-cheat-btn" ${remaining<=0?'disabled':''} style="margin-bottom:12px;${remaining<=0?'opacity:0.5':''}">Log a cheat meal today</button>
+    <div class="field" style="margin-bottom:0">
+      <label for="cheat-allowed">Change monthly allowance</label>
+      <input type="number" id="cheat-allowed" min="0" max="15" value="${state.cheatMeals.allowedPerMonth}">
+    </div>
+  </div>
+  ${usedThisMonth.length ? `
+  <div class="plate-divider">${ICONS.plate.replace('currentColor','var(--ink-faint)')}<div class="label">Used this month</div><div class="rule"></div></div>
+  ${usedThisMonth.slice().reverse().map(d=>`
+    <div class="history-item"><div class="d">${fmtDate(d)}</div><button class="remove-ex" data-remove-cheat="${d}">Remove</button></div>`).join('')}
+  ` : ''}
+  <div class="disclaimer">A planned cheat meal now and then keeps a diet sustainable — this just keeps the count honest instead of losing track.</div>
+  `;
+}
+
+/* ============================= DAILY CHECK-IN (HABITS ONLY) ============================= */
+function renderCheckin(){
+  return `
+  ${topbar()}
+  <p style="color:var(--ink-dim);font-size:13.5px;margin-bottom:16px">Just today's habits — nothing about training goes here.</p>
+  <div class="card">
+    <div class="field-row">
+      <div class="field"><label>Bodyweight (kg)</label><input type="number" id="ci-bw"></div>
+      <div class="field"><label>Water (litres)</label><input type="number" step="0.1" id="ci-water"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Sleep (hours)</label><input type="number" step="0.5" id="ci-sleep"></div>
+      <div class="field"><label>Sleep quality (1 to 5)</label><input type="number" min="1" max="5" id="ci-sleepq"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Energy (1 to 5)</label><input type="number" min="1" max="5" id="ci-energy"></div>
+      <div class="field"><label>Stress (1 to 5)</label><input type="number" min="1" max="5" id="ci-stress"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Caffeine (mg, approx)</label><input type="number" id="ci-caffeine" placeholder="~95mg per coffee"></div>
+      <div class="field"><label>Alcohol (units)</label><input type="number" id="ci-alc" value="0"></div>
+    </div>
+    <div class="field"><label>Cigarettes today</label><input type="number" id="ci-cig" value="0"></div>
+    <div class="field">
+      <label>Other substance use (optional, private, just for your own tracking)</label>
+      <input type="text" id="ci-substances" placeholder="Leave blank if none">
+    </div>
+    <div class="field"><label>Notes (optional)</label><textarea id="ci-notes" rows="2"></textarea></div>
+    <button class="btn" id="save-checkin-btn">Save today's check-in</button>
+  </div>
+
+  <div class="plate-divider">${ICONS.plate.replace('currentColor','var(--ink-faint)')}<div class="label">Recent history</div><div class="rule"></div></div>
+  ${state.checkins.length===0 ? `<div class="empty-state">${ICONS.checkin.replace(/currentColor/g,'var(--ink-faint)')}<div>No check-ins yet — log today's to start your history.</div></div>` :
+    state.checkins.slice().reverse().slice(0,14).map(c=>`
+      <div class="history-item">
+        <div><div class="d">${fmtDate(c.date)}</div>Sleep ${c.sleep||'—'}h · Energy ${c.energy||'—'}/5 · Stress ${c.stress||'—'}/5</div>
+      </div>`).join('')}
+  `;
+}
+
+/* ============================= PROGRESS ============================= */
+let bwChartInstance = null, sleepChartInstance = null;
+function renderProgress(){
+  if(state.checkins.length===0 && state.trainlogs.length===0){
+    return `${topbar()}<div class="empty-state">${ICONS.progress.replace(/currentColor/g,'var(--ink-faint)')}<div>Log a few check-ins and workouts and your trends will show up here.</div></div>`;
+  }
+  const withBW = state.checkins.filter(c=>c.bodyweight);
+  const last28 = state.trainlogs.slice(-28);
+  const fullCount = last28.filter(c=>c.completion==='full').length;
+  const adherence = last28.length ? Math.round((fullCount/last28.length)*100) : 0;
+  return `
+  ${topbar()}
+  <div class="stat-row">
+    <div class="stat-box"><div class="n">${state.trainlogs.length}</div><div class="l">Sessions logged</div></div>
+    <div class="stat-box"><div class="n">${adherence}%</div><div class="l">Adherence (28d)</div></div>
+    <div class="stat-box"><div class="n">${state.liftchecks.length}</div><div class="l">Lifts reviewed</div></div>
+  </div>
+  <div class="card">
+    <h3>Bodyweight</h3>
+    ${withBW.length>=2 ? '<canvas id="bw-chart" height="180"></canvas>' : '<p style="font-size:13px;color:var(--ink-faint)">Log bodyweight in at least two check-ins to see a trend.</p>'}
+  </div>
+  <div class="card">
+    <h3>Sleep (hours)</h3>
+    ${state.checkins.length>=2 ? '<canvas id="sleep-chart" height="180"></canvas>' : '<p style="font-size:13px;color:var(--ink-faint)">Log sleep in at least two check-ins to see a trend.</p>'}
+  </div>
+  <div class="card">
+    <h3>Lift check history</h3>
+    ${state.liftchecks.length===0 ? '<p style="font-size:13px;color:var(--ink-faint)">No lift reviews saved yet.</p>' :
+      state.liftchecks.slice().reverse().slice(0,8).map(l=>`
+        <div class="history-item">
+          <div><div class="d">${fmtDate(l.date)}</div>${CHECKLISTS[l.lift].title}</div>
+          <span class="pill ${l.verdict==='good'?'full':(l.verdict==='bad'?'missed':'partial')}">${l.verdict}</span>
+        </div>`).join('')}
+  </div>
+  `;
+}
+
+function drawCharts(){
+  const bwCanvas = document.getElementById('bw-chart');
+  if(bwCanvas && window.Chart){
+    const withBW = state.checkins.filter(c=>c.bodyweight);
+    if(bwChartInstance) bwChartInstance.destroy();
+    bwChartInstance = new Chart(bwCanvas, {
+      type:'line',
+      data:{ labels: withBW.map(c=>fmtDate(c.date)), datasets:[{ data: withBW.map(c=>c.bodyweight), borderColor:'#cf9d33', backgroundColor:'rgba(207,157,51,0.15)', tension:0.3, fill:true, pointRadius:3 }] },
+      options:{ plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#918c7d',font:{size:10}},grid:{color:'rgba(236,232,220,0.06)'}}, y:{ticks:{color:'#918c7d',font:{size:10}},grid:{color:'rgba(236,232,220,0.06)'}} } }
+    });
+  }
+  const sleepCanvas = document.getElementById('sleep-chart');
+  if(sleepCanvas && window.Chart){
+    const recent = state.checkins.slice(-14);
+    if(sleepChartInstance) sleepChartInstance.destroy();
+    sleepChartInstance = new Chart(sleepCanvas, {
+      type:'bar',
+      data:{ labels: recent.map(c=>fmtDate(c.date)), datasets:[{ data: recent.map(c=>c.sleep||0), backgroundColor:'rgba(207,157,51,0.55)' }] },
+      options:{ plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#918c7d',font:{size:10}},grid:{display:false}}, y:{ticks:{color:'#918c7d',font:{size:10}},grid:{color:'rgba(236,232,220,0.06)'}} } }
+    });
+  }
+}
+
+/* ============================= MASTER RENDER ============================= */
+function renderAll(){
+  const app = document.getElementById('app');
+  let html='';
+  if(state.tab==='home') html = renderHome();
+  else if(state.tab==='judge') html = renderJudge();
+  else if(state.tab==='plan') html = renderPlan();
+  else if(state.tab==='trainlog') html = renderTrainLog();
+  else if(state.tab==='diet') html = renderDiet();
+  else if(state.tab==='checkin') html = renderCheckin();
+  else if(state.tab==='progress') html = renderProgress();
+  app.innerHTML = html;
+  renderTabbar();
+  wireEvents();
+  if(state.tab==='progress') setTimeout(drawCharts, 30);
+}
+
+/* ============================= EVENTS ============================= */
+function wireEvents(){
+  const goHome = document.getElementById('topbar-gohome');
+  if(goHome) goHome.addEventListener('click', ()=>{ state.tab='home'; renderAll(); window.scrollTo(0,0); });
+
+  // Judge tab
+  document.querySelectorAll('[data-lift]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.judge.lift = el.dataset.lift; state.judge.answers={}; state.judge.marks={}; state.judge.result=null; renderAll(); });
+  });
+  const videoInput = document.getElementById('video-input');
+  if(videoInput){
+    videoInput.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(file){
+        state.judge.videoURL = URL.createObjectURL(file);
+        state.judge.marks = {};
+        document.getElementById('video-wrap').style.display='block';
+        const v = document.getElementById('lift-video');
+        v.src = state.judge.videoURL;
+      }
+    });
+  }
+  document.querySelectorAll('[data-mark]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const v = document.getElementById('lift-video');
+      if(!v) return;
+      state.judge.marks[el.dataset.mark] = v.currentTime;
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-q]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.judge.answers[el.dataset.q] = el.dataset.a; renderAll(); });
+  });
+  const scoreBtn = document.getElementById('score-btn');
+  if(scoreBtn){
+    scoreBtn.addEventListener('click', ()=>{
+      state.judge.result = scoreLift();
+      renderAll();
+      setTimeout(()=>{ const el=document.querySelector('.verdict-box'); if(el) el.scrollIntoView({behavior:'smooth', block:'center'}); }, 30);
+    });
+  }
+  const saveLcBtn = document.getElementById('save-liftcheck-btn');
+  if(saveLcBtn){
+    saveLcBtn.addEventListener('click', ()=>{
+      state.liftchecks.push({date: todayISO(), lift: state.judge.lift, verdict: state.judge.result.verdict});
+      save(LS_LIFTCHECKS, state.liftchecks);
+      saveLcBtn.textContent = 'Saved';
+      saveLcBtn.disabled = true;
+    });
+  }
+
+  // Shared profile intake (used by Plan + Diet)
+  wireRadioGroup('f-sex', v=>{ profileDraft.sex=v; });
+  wireRadioGroup('f-diet', v=>{ profileDraft.diet=v; });
+  wireRadioGroup('f-exp', v=>{ profileDraft.experience=v; });
+  const buildBtn = document.getElementById('build-plan-btn');
+  if(buildBtn){
+    buildBtn.addEventListener('click', ()=>{
+      profileDraft.currentWeight = document.getElementById('f-cw').value;
+      profileDraft.goalWeight = document.getElementById('f-gw').value;
+      profileDraft.height = document.getElementById('f-h').value;
+      profileDraft.age = document.getElementById('f-age').value;
+      if(!profileDraft.currentWeight || !profileDraft.goalWeight || !profileDraft.height || !profileDraft.age || !profileDraft.sex || !profileDraft.diet){
+        alert('Fill in every field so the plan and calorie target are accurate.');
+        return;
+      }
+      state.profile = {...profileDraft};
+      state.program = PROGRAM_TEMPLATE;
+      save(LS_PROFILE, state.profile);
+      save(LS_PROGRAM, state.program);
+      renderAll();
+    });
+  }
+  const editBtn = document.getElementById('edit-plan-btn');
+  if(editBtn){
+    editBtn.addEventListener('click', ()=>{ profileDraft = {...state.profile}; state.profile=null; renderAll(); });
+  }
+
+  // Training log tab
+  wireRadioGroup('tl-day', v=>{ const d=ensureTrainDraft(); d.dayRef=v; d.exercises=[]; renderAll(); });
+  wireRadioGroup('tl-completion', v=>{ ensureTrainDraft().completion=v; });
+  const addExtraBtn = document.getElementById('add-extra-btn');
+  if(addExtraBtn){
+    addExtraBtn.addEventListener('click', ()=>{
+      const d = ensureTrainDraft();
+      const name = prompt('Exercise name');
+      if(name) d.exercises.push({name, custom:true, weight:'', sets:'', reps:'', rpe:''});
+      renderAll();
+    });
+  }
+  document.querySelectorAll('[data-remove-extra]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const idx = parseInt(el.dataset.removeExtra);
+      const d = ensureTrainDraft();
+      const customOnes = d.exercises.filter(e=>e.custom);
+      const target = customOnes[idx];
+      d.exercises = d.exercises.filter(e=>e!==target);
+      renderAll();
+    });
+  });
+  const saveTlBtn = document.getElementById('save-trainlog-btn');
+  if(saveTlBtn){
+    saveTlBtn.addEventListener('click', ()=>{
+      const d = ensureTrainDraft();
+      if(d.dayRef==null){ alert('Choose which session this was.'); return; }
+      if(!d.completion){ alert('Select how the session went overall.'); return; }
+      const program = state.program || PROGRAM_TEMPLATE;
+      let dayLabel, exercises=[];
+      if(d.dayRef==='custom'){
+        dayLabel = 'Off-plan';
+        exercises = [{name:'Custom', notes: document.getElementById('tl-custom-text').value}];
+      } else {
+        const day = program[parseInt(d.dayRef)];
+        dayLabel = `Day ${parseInt(d.dayRef)+1}: ${day.focus.replace(' Day','')}`;
+        document.querySelectorAll('.exercise-row[data-exname]').forEach(row=>{
+          exercises.push({
+            name: row.dataset.exname,
+            weight: row.querySelector('.ex-weight').value,
+            sets: row.querySelector('.ex-sets').value,
+            reps: row.querySelector('.ex-reps').value,
+            rpe: row.querySelector('.ex-rpe').value
+          });
+        });
+        document.querySelectorAll('.exercise-row[data-extra-idx]').forEach(row=>{
+          exercises.push({
+            name: row.querySelector('.ex-title').textContent,
+            weight: row.querySelector('.extra-weight').value,
+            sets: row.querySelector('.extra-sets').value,
+            reps: row.querySelector('.extra-reps').value,
+            rpe: row.querySelector('.extra-rpe').value,
+            custom:true
+          });
+        });
+      }
+      const entry = {
+        date: document.getElementById('tl-date').value || todayISO(),
+        dayRef: d.dayRef,
+        dayLabel,
+        completion: d.completion,
+        exercises,
+        notes: document.getElementById('tl-notes').value || ''
+      };
+      state.trainlogs.push(entry);
+      save(LS_TRAINLOGS, state.trainlogs);
+      trainDraft = newTrainDraft();
+      renderAll();
+    });
+  }
+
+  // Diet tab
+  document.querySelectorAll('[data-dietsub]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.dietUI.subtab = el.dataset.dietsub; state.dietUI.picker = null; renderAll(); });
+  });
+  document.querySelectorAll('[data-open-picker]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [day, mealType] = el.dataset.openPicker.split('|');
+      state.dietUI.picker = {day, mealType};
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-close-picker]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.dietUI.picker = null; renderAll(); });
+  });
+  document.querySelectorAll('[data-pick-meal]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [day, mealType, mealId] = el.dataset.pickMeal.split('|');
+      if(!state.mealPlan[day]) state.mealPlan[day] = {};
+      state.mealPlan[day][mealType] = mealId;
+      state.dietUI.picker = null;
+      save(LS_MEALPLAN, state.mealPlan);
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-dietlog]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [day, followed] = el.dataset.dietlog.split('|');
+      const date = dateForDay(day);
+      const existing = state.dietLog.find(d=>d.date===date);
+      if(existing) existing.followed = followed;
+      else state.dietLog.push({date, followed});
+      save(LS_DIETLOG, state.dietLog);
+      renderAll();
+    });
+  });
+  const logCheatBtn = document.getElementById('log-cheat-btn');
+  if(logCheatBtn){
+    logCheatBtn.addEventListener('click', ()=>{
+      const today = todayISO();
+      if(!state.cheatMeals.used.includes(today)) state.cheatMeals.used.push(today);
+      save(LS_CHEATMEALS, state.cheatMeals);
+      renderAll();
+    });
+  }
+  const cheatAllowedInput = document.getElementById('cheat-allowed');
+  if(cheatAllowedInput){
+    cheatAllowedInput.addEventListener('change', ()=>{
+      state.cheatMeals.allowedPerMonth = parseInt(cheatAllowedInput.value)||0;
+      save(LS_CHEATMEALS, state.cheatMeals);
+      renderAll();
+    });
+  }
+  document.querySelectorAll('[data-remove-cheat]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.cheatMeals.used = state.cheatMeals.used.filter(d=>d!==el.dataset.removeCheat);
+      save(LS_CHEATMEALS, state.cheatMeals);
+      renderAll();
+    });
+  });
+
+  // Check-in tab (habits only)
+  const saveCiBtn = document.getElementById('save-checkin-btn');
+  if(saveCiBtn){
+    saveCiBtn.addEventListener('click', ()=>{
+      const entry = {
+        date: todayISO(),
+        bodyweight: parseFloat(document.getElementById('ci-bw').value)||null,
+        water: parseFloat(document.getElementById('ci-water').value)||null,
+        sleep: parseFloat(document.getElementById('ci-sleep').value)||null,
+        sleepQuality: parseFloat(document.getElementById('ci-sleepq').value)||null,
+        energy: parseFloat(document.getElementById('ci-energy').value)||null,
+        stress: parseFloat(document.getElementById('ci-stress').value)||null,
+        caffeine: parseFloat(document.getElementById('ci-caffeine').value)||0,
+        alcohol: parseFloat(document.getElementById('ci-alc').value)||0,
+        cigarettes: parseFloat(document.getElementById('ci-cig').value)||0,
+        substances: document.getElementById('ci-substances').value||'',
+        notes: document.getElementById('ci-notes').value||''
+      };
+      state.checkins.push(entry);
+      save(LS_CHECKINS, state.checkins);
+      renderAll();
+    });
+  }
+}
+
+function wireRadioGroup(containerId, onPick){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.querySelectorAll('.radio-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      container.querySelectorAll('.radio-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      onPick(chip.dataset.val);
+    });
+  });
+}
+
+/* ============================= INIT ============================= */
+renderAll();
+</script>
+</body>
+</html>

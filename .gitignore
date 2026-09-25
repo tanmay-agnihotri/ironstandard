@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Pose model weights (auto-downloaded on first run — don't commit, ~6MB each time it changes)
+*.pt
+
+# OS/editor cruft
+.DS_Store
+.vscode/*
+!.vscode/settings.json
+
+# Sample/test videos and outputs (these can be large — keep them out of git)
+*.mp4
+!docs/**/*.mp4
