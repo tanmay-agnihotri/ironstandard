@@ -1,4 +1,4 @@
-# Iron Standard — Deep Technical Understanding & Interview Prep
+# Iron Standard — Deep Technical Understanding 
 
 This document exists so you can talk about this project from real understanding,
 not from memory of what was built. Every bug story in here is something that
