@@ -1,13 +1,5 @@
 # Iron Standard — Deep Technical Understanding 
 
-This document exists so you can talk about this project from real understanding,
-not from memory of what was built. Every bug story in here is something that
-actually happened during development — a wrong number, a wrong assumption, a
-real video that broke the code — and got fixed by testing against real data,
-not by guessing. That's your strongest material in an interview: you're not
-describing a tutorial project, you're describing debugging.
-
----
 
 ## 1. The 30-Second Pitch
 
