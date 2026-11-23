@@ -25,5 +25,7 @@ else:
         "name": COACH_NAME,
         "password_hash": hash_password(COACH_PASSWORD),
     })
-    print(f"Coach account created: name='{COACH_NAME}' password='{COACH_PASSWORD}'")
+    print(f"Coach account created: name='{COACH_NAME}'")
+    if "COACH_PASSWORD" not in os.environ:
+        print("WARNING: using the default password. Set COACH_PASSWORD and re-create the account before deploying.")
     print("Change the password by re-running with COACH_PASSWORD set, after deleting the old one.")
